@@ -1,5 +1,23 @@
 # Effective Modern C++ Cheatsheet
 
+## Abbreviations
+
+1. **ref(s)**: reference(s)
+2. **l-ref(s)**: lvalue reference(s)
+3. **r-ref(s)**: rvalue reference(s)
+4. **u-ref(s)**: universal reference(s)
+5. **op(s)**: operation(s)
+6. **expr(s)**: expression(s)
+7. **var(s)**: variable(s)
+8. **fn(s)**: function(s)
+9. **init**: initialize
+10. **declr**: declaration
+11. **objs**: object(s)
+12. **ptr(s)**: pointer(s)
+13. **ctor**: constructor
+14. **dtor**: destructor
+15. **fwd**: forward
+
 ## Chapter 1. Deducing Types
 
 ### Item 1: Understand `template` type deduction
@@ -28,7 +46,7 @@
 
 ## Chapter 2. `auto`
 
-### Item 5: Prefer `auto` decalartions
+### Item 5: Prefer `auto` declarations
 
 * `auto` prevents verbose declarations, uninitialized vars, and directly holds closures (lambdas)
 * Use `auto` esp. in place of `std::vector<T>::size_type` and `std::unordered_map<T>::key_type`
@@ -72,7 +90,7 @@
 * Prefer `const_iterators` to `iterators` for all STL containers e.g `cbegin` instead of `begin`
 * For max generic code, don't assume the existence of member `cbegin`; use `std::begin` instead
 
-### Item 14: Declare functions `noexcept` iff they won't emit exceptions
+### Item 14: Declare functions `noexcept` if they won't emit exceptions
 
 * Declare fns `noexcept` when they don't emit exceptions e.g fns that use _wide contracts_
 * Always use `noexcept` for move-operations, `swap` functions and memory allocation/deallocation
@@ -91,7 +109,7 @@
 
 ### Item 17: Understand special member function generation
 
-* _Default ctor_ is genrated iff no other _ctor_ declared; most generated fns are `public`/`inline`
+* _Default ctor_ is generated if no other _ctor_ declared; most generated fns are `public`/`inline`
 * Declaring _dtor_ and/or _copy ops_ disables generation of default _move ops_ and vice versa
 * _Copy assignment operator_ is generated if: 1) not already declared 2) no move op is declared
 
@@ -251,13 +269,3 @@
 * When value being added uses assignment, `.push/.insert` work just as well as `.emplace` versions
 * In a cont. of resource-managing types e.g unique_ptr, `.push/.insert` can prevent corner cases
 * Whn using `.emplace` functions, be careful with _args_ cause they can invoke explicit _ctors_
-
-## Abbreviations
-
-1. **ref(s)**: reference(s)
-2. **l-refs**: lvalue references
-3. **r-refs**: rvalue references
-4. **u-refs**: universal references
-5. **objs**: objects
-6. **fns**: functions
-7. **op(s)**: operation(s)
