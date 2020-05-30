@@ -1,67 +1,70 @@
 # Effective Modern C++ Cheatsheet
 
-## Abbreviations
+## Shorthands
 
 1. **ref(s)**: reference(s)
-2. **l-ref(s)**: lvalue reference(s)
-3. **r-ref(s)**: rvalue reference(s)
-4. **u-ref(s)**: universal reference(s)
-5. **op(s)**: operation(s)
-6. **expr(s)**: expression(s)
-7. **var(s)**: variable(s)
-8. **fn(s)**: function(s)
-9. **init**: initialize
-10. **declr**: declaration
-11. **objs**: object(s)
-12. **ptr(s)**: pointer(s)
-13. **ctor**: constructor
-14. **dtor**: destructor
-15. **fwd**: forward
+2. **op(s)**: operation(s)
+
+## Terms
+
+1. **lvalue**: typically an expression whose address can be taken e.g a variable name (`auto x = 10;`)
+2. **rvalue**: an expression whose address cannot be taken in C++ i.e before C++11 e.g literal types (`10`)
+3. **lvalue-ref(erence)**: reference to an _lvalue_ type typically denoted by `&` e.g `auto& lvalue_ref = x;`
+4. **rvalue-ref(erence)**: reference to an _rvalue_ type typically denoted by `&&` e.g `auto&& rvalue_ref = 10;`
+5. **copy-operations**: _copy-construct_ from _lvalues_ using copy-constructor and copy-assignment operator
+6. **move-operations** _move-construct_ from _rvalues_ using move-constructor and move-assignment operator
+7. **arguments**: expressions passed to a function call at call site (could be either _lvalues_ or _rvalues_)
+8. **parameters**: _lvalue names_ initialized by arguments passed to a function e.g `x` in `void foo(int x);`
+9. **callable objects**: objects supporting member `operator()` e.g _functions_, `lambda`s, `std::function` etc
+10. **declarations**: introduce names and types without details e.g `class Widget;`, `void foo(int x);`
+11. **definitions**: provide implementation details e.g `class Widget { ... };`, `void foo(int x) { ... }`
 
 ## Chapter 1. Deducing Types
 
 ### Item 1: Understand `template` type deduction
 
-* Deduced type of T doesn't always match that of the parameter (i.e ParamType) in template fns
-* With _l-ref/r-ref_ args, compiler ignores reference-ness of an arg when deducing the type of T
-* With _u-refs_, type deduction always distinguishes between _l-values_ and _r-values_ args
-* With _pass-by-value_, _ref-ness_, `const` and `volatile` are ignored if present in ParamType
-* args that are raw array or fn types always decay to ptr types unless they initialize references
+* Deduced type of T doesn't always match that of the parameter (i.e ParamType) in template functions
+* For _lvalue-refs/rvalue-refs_, compiler ignores the reference-ness of an _arg_ when deducing type of T
+* With _universal-refs_, type deduction always distinguishes between _l-value_ and _r-value_ argument types
+* With _pass-by-value_, _reference-ness_, `const` and `volatile` are ignored if present in the ParamType
+* Raw arrays `[]` and function types always decay to pointer types unless they initialize references
 
 ### Item 2: Understand `auto` type deduction
 
-* `auto` plays the role of T while its type specifier (i.e including `const` or _ref_) as ParamType
-* `auto` always deduces `std::initializer_list<T>` for braced initializer e.g `{1, 2, 3}`
-* `auto` as function or lambda `return` type uses _template type deduction_, not _auto type deduction_
+* `auto` plays the role of `T` while its type specifier (i.e including `const` and/or _ref_) as ParamType
+* For a braced initializer e.g `{1, 2, 3}`, `auto` _always_ deduces `std::initializer_list` as its type
+* **Corner case**: `auto` as a _callable_ `return` type uses _template type deduction_, not _auto type deduction_
 
 ### Item 3: Understand `decltype`
 
-* `decltype` on vars/exprs yields correct type mostly; it yields _l-value_ ref for _l-values_ exprs only
-* `decltype(auto)` includes _ref-ness_ when deducing `return` type of a fn or lambda from definition
+* `decltype`, typically used in function `template`s, determines a variable or an expression's type
+* `decltype(auto)`, unlike `auto`, includes _ref-ness_ when used in the `return` type of a _callable_
+* **Corner case**: `decltype` on _lvalue expression_ (except _lvalue-names_) yields _lvalue-refs_ not _lvalues_
 
-### Item 4: Know how to view deduced types
+### Item 4: How to view deduced types?
 
-* Update your code so that it leads to a compilation failure and you will see the type in diagnostics
-* `std::type_info::name` depends upon compiler implementation; use Boost.TypeIndex library
+* You can update your code so that it leads to a compilation failure, you will see the type in diagnostics
+* `std::type_info::name` (and `typeid()`) depends upon compiler; use [Boost.TypeIndex](https://www.boost.org/doc/libs/1_66_0/doc/html/boost_typeindex/examples.html) library instead
 
 ## Chapter 2. `auto`
 
 ### Item 5: Prefer `auto` declarations
 
-* `auto` prevents verbose declarations, uninitialized vars, and directly holds closures (lambdas)
-* Use `auto` esp. in place of `std::vector<T>::size_type` and `std::unordered_map<T>::key_type`
+* `auto` prevents _uninitialized variables_ and _verbose declarations_ (e.g `std::unordered_map<T>::key_type`)
+* Use `auto` especially when declaring _lambdas_ to directly hold _closures_ unlike `std::function`
   
-### Item 6: How to fix undesired `auto` type deduction
+### Item 6: How to fix undesired `auto` type deduction?
 
-* Use `auto` with `static_cast` (a.k.a _explicitly typed initializer idiom_) to get correct types
+* Use `auto` with `static_cast` (a.k.a _explicitly typed initializer idiom_) to enforce correct types
 * Never use `auto` directly with _invisible proxy classes_ such as `std::vector<bool>::reference` 
 
 ## Chapter 3. Moving to Modern C++
 
-### Item 7: Distinguish between () and {} when creating objects
+### Item 7: Distinguish between () and {} (aka braced/uniform initializer) when creating objects
 
-* Braced (a.k.a uniform) initializer helps to prevent narrowing conversions and most vexing parse
-* For overload-resolution, compiler always prefers `std::initializer_list` for braced initializer
+* Braced initializer i.e `{}` prevents _narrowing conversions_ and _most vexing parse_ while `()` doesn't
+* During _overload-resolution_, `std::initializer_list` version is always preferred for `{}` types
+* **Corner case**: `std::vector<int> v{10, 20}` creates a vector with 10 and 20, not 10 `int`s initialized to 20.
 
 ### Item 8: Prefer `nullptr` to `0` and `NULL`
 
@@ -69,21 +72,21 @@
   
 ### Item 9: Prefer alias declarations to `typedefs`
 
-* Alias declarations use `using` keyword and support templatization while `typedefs` don't
+* Alias declarations (declared with `using` keyword) support templatization while `typedefs` don't
 * Alias declarations avoid 1) `::type` suffix 2) `typename` prefix when referring to other typedefs
 
 ### Item 10: Prefer _scoped_ `enums` to _unscoped_ `enums`
 
 * Use `enum class` instead of `enum` to limit scope of an `enum` members to just inside the `enum`
-* `enum class` uses `int` type by default, prevents _implicit convs_ and allows fwd declarations
+* `enum class`es use `int` by default, prevent _implicit conversions_ and permit forward declarations
 
-### Item 11: Prefer deleted functions to private undefined ones
+### Item 11: Prefer public-deleted functions to private-undefined versions
 
-* Make unwanted functions (such as _copy-ctors_ for move-only types) `public` as well as `delete`
+* Always make unwanted functions (such as _copy-operations_ for move-only types) `public` and `delete`
 
 ### Item 12: Always declare overriding functions `override`
 
-* Declare overriding fns in derived types `override`; use `final` to prevent further inheritance
+* Declare overriding functions in derived types `override`; use `final` to prevent further inheritance
 
 ### Item 13: Always prefer `const_iterators` to `iterators`
 
@@ -92,180 +95,180 @@
 
 ### Item 14: Declare functions `noexcept` if they won't emit exceptions
 
-* Declare fns `noexcept` when they don't emit exceptions e.g fns that use _wide contracts_
+* Declare functions `noexcept` when they don't emit exceptions such as functions with _wide contracts_
 * Always use `noexcept` for move-operations, `swap` functions and memory allocation/deallocation
-* When a `noexcept` fn emits an exception: stack is _possibly_ wound and program is terminated
+* When a `noexcept` function emits an exception: stack is _possibly_ wound and program is terminated
 
 ### Item 15: Use `constexpr` whenever possible
 
-* `constexpr` objs are `const` that are known at compile time; not all `const`s are `constexpr` tho
-* `constexpr` functions will produce results at compile time if their args are known during compile
-* Declaring objs and fns `constexpr` allows you to use your types at compile as well as runtime
+* `constexpr` objects are always `const` and usable in _compile-time evaluations_ e.g `template` parameters
+* `constexpr` functions produce results at compile-time only if all of their args are known at compile-time
+* `constexpr` objects and functions can be used in a wider context i.e _compile-time_ as well as _runtime_
 
 ### Item 16: Make `const` member functions thread-safe
 
-* Member fns that do not modify members of a type should be made `const` and then `thread-safe`
-* For synchronization, consider `std::atomic` first and then move to `std::mutex` when required
+* Make member functions of a type `const` as well as `thread-safe` if they do not modify its members
+* For synchronization issues, consider `std::atomic` first and then move to `std::mutex` if required
 
-### Item 17: Understand special member function generation
+### Item 17: Understand when your compiler generates special member functions
 
-* _Default ctor_ is generated if no other _ctor_ declared; most generated fns are `public`/`inline`
-* Declaring _dtor_ and/or _copy ops_ disables generation of default _move ops_ and vice versa
+* Compiler generates a _default constructor_ only if the class type declares no _constructors_ at all
+* Declaring _destructor_ and/or _copy ops_ disables the generation of _default move ops_ and vice versa
 * _Copy assignment operator_ is generated if: 1) not already declared 2) no move op is declared
 
 ## Chapter 4. Smart Pointers
 
 ### Item 18: Use `std::unique_ptr` for exclusive-ownership of resource management
 
-* `std::unique_ptr` owns what it points to, is fast as raw ptr (`*`) and supports custom deleters
-* Always return `std::unique_ptr` from factory fns; converting it to a `std::shared_ptr` is easy
-* `std::array`, `std::vector` and `std::string` are generally better choices than raw arrays `[]`
+* `std::unique_ptr` owns what it points to, is fast as raw pointer (`*`) and supports custom deleters
+* Conversion to a `std::shared_ptr` is easy, therefore _factory functions_ should always return `std::unique_ptr`
+* `std::array`, `std::vector` and `std::string` are generally better choices than using raw arrays `[]`
 
 ### Item 19: Use `std::shared_ptr` for shared-ownership resource management
 
-* `std::shared_ptr` points to an object with _shared ownership_ but doesn't own the object
-* `std::shared_ptr` stores/updates _metadata_ on heap and can be 2x slower than `std::unique_ptr`
+* `std::shared_ptr` points to an object with _shared ownership_ but doesn't actually own the object
+* `std::shared_ptr` stores/updates _metadata_ on heap and can be up to 2x slower than `std::unique_ptr`
 * Unless you want custom deleters, prefer `std::make_shared<T>` for creating shared pointers
-* Don't create multiple `std::shared_ptr`s from a single raw ptr; it leads to _undefined behavior_
-* For a `std::shared_ptr` to `this`, inherit your class type from `std::enable_shared_from_this`
+* Don't create multiple `std::shared_ptr`s from a single raw pointer; it leads to _undefined behavior_
+* For `std::shared_ptr` to `this`, always inherit your class type from `std::enable_shared_from_this`
 
-### Item 20: Use `std::weak_ptr` for `std::shared_ptr`-like ptrs that can dangle
+### Item 20: Use `std::weak_ptr` for `std::shared_ptr`-like pointers that can dangle
 
-* `std::weak_ptr` operates with the possibility that the obj it points to might have been destroyed
-* `std::weak_ptr::lock()` returns `nullptr` for _destroyed objs_, else `std::shared_ptr` always
-* `std::weak_ptr` can be used for caching, observer lists and for prevention of shared ptrs cycles
+* `std::weak_ptr` operates with the possibility that the object it points to might have been destroyed
+* `std::weak_ptr::lock()` returns a `std::shared_ptr`, but a `nullptr` for _destroyed objects_ only
+* `std::weak_ptr` is typically used for _caching_, _observer lists_ and prevention of _shared pointers cycles_
 
-### Item 21: Prefer `std::make_unique` and `std::make_shared` to direct use of new
+### Item 21: Prefer make functions (i.e `std::make_unique` and `std::make_shared`) to direct use of new
 
-* `make` functions remove src code duplication, improve exception safety and are faster (sometimes)
-* `make` are bad for custom deleters, large mem objs and `std::weak_ptr`s that outlive _shared ptrs_
-* Do not mix _overloading_, _braced initializer_ and `std::initializer_list`; use `new` if you do
-* When using `new` (in any case), prevent mem leaks by immediately passing it to a _smart ptr_ always
+* Use _make functions_ to remove source code duplication, improve exception safety and performance
+* When using `new` (in cases below), prevent memory leaks by immediately passing it to a _smart pointer_!
+* You must use `new` when 1) specifying custom deleters 2) pointed-to object is a _braced initializer_
+* Use `new` when `std::weak_ptr`s outlive their `std::shared_ptr`s to avoid _memory de-allocation delays_
 
-### Item 22: When using Pimpl idiom, define special mem fns in an implementation file
+### Item 22: When using Pimpl idiom, define special member functions in an implementation file
 
-* _Pimpl idiom_ puts members of a class type inside an impl (`struct Impl`) and stores a ptr to it
-* For `std::unique_ptr<Impl>`, always _implement_ your copy, move and dtor ops in an impl file
-* With `std::shared_ptr<Impl>`, no need to do that; shared ptr is roughly just as efficient here
+* _Pimpl idiom_ puts members of a type inside an impl type (`struct Impl`) and stores a pointer to it
+* Use `std::unique_ptr<Impl>` and always implement your destructor and _copy/move ops_  in an impl file
 
 ## Chapter 5. Rvalue references, move semantics and perfect forwarding
 
-* _Move semantics_ usually replace expensive copy ops (e.g _copy ctor_) with cheaper move ops
-* _Perfect forwarding_ forwards a fn's args to other fns params while strictly preserving types
+* _Move semantics_ aim to replace expensive _copy ops_ with the cheaper _move ops_ when applicable
+* _Perfect forwarding_ forwards a function's args to other functions parameters while preserving types
 
 ### Item 23: Understand `std::move` and `std::forward`
 
-* `std::move` performs an unconditional cast to an _rvalue_; you can then perform _move ops_
+* `std::move` performs an unconditional cast on _lvalues_ to _rvalues_; you can then perform _move ops_
 * `std::forward` casts its _input arg_ to an _rvalue_ only if the _arg_ is bound to an _rvalue_ name
 
-### Item 24: Distinguish universal refs (u-refs) from rvalue refs
+### Item 24: Distinguish universal-refs from rvalue-refs
 
-* U-refs (occur in `T&&` and `auto&&`) _cast_ lvalues to lvalue refs and rvalues to rvalue refs
-* For refs to be universal, _type deduction_ and _non-`const`ness_ of the param type is a pre-req
+* Universal-refs (i.e `T&&` and `auto&&`) always _cast_ lvalues to _lvalue-refs_ and rvalues to _rvalue-refs_
+* For universal-ref parameters, _auto/template type deduction_ must occur and they must be _non-`const`_
 
 ### Item 25: Understand when to use `std::move` and `std::forward`
 
-* Universal references are usually a better choice than overloading fns for _lvalues_ and _rvalues_
+* Universal references are usually a better choice than overloading functions for _lvalues_ and _rvalues_
 * Apply `std::move` on _rvalue refs_ and `std::forward` on _universal-refs_ last time each is used
-* Similarly, also apply `std::move` or `std::forward` accordingly when returning by value from fns
-* Never return local objs in fns using `std::move`; it can prevent _return value optimization (RVO)_
+* Similarly, also apply `std::move` or `std::forward` accordingly when returning by value from functions
+* Never return _local objects_ from functions with `std::move`! It can prevent _return value optimization (RVO)_
   
-### Item 26: Avoid overloading on universal references
+### Item 26: Avoid overloading on universal-references
 
 * _Universal-refs_ should be used when client's code could pass either _lvalue refs_ or _rvalue refs_
-* Fns overloaded on _u-refs_ usually get called more often than expected so you should avoid them
-* Avoid perf-fwding ctrs; they are usually better matches for non-`const` values than copy/move ops
+* Functions overloaded on _universal-refs_ typically get called more often than expected - avoid them!
+* Avoid _perf-forwarding constructors_ because they can hijack _copy/move ops_ for non-`const` types
 
 ### Item 27: Alternatives to overloading universal-references
 
-* _Ref-to-const_ works but is less efficient while _pass-by-value_ works but only for copyable types
-* Tag dispatching (e.g using `std::true_type`) takes _u-refs_ and a second arg to help in matching
-* Templates using `std::enable_if_t` and `std::decay_t` also work for _u-refs_ and they reads nicely
-* Generally, _u-refs_ have efficieny advantages but they sometimes suffer from usability disadvantages
+* _Ref-to-const_ works but is less efficient while _pass-by-value_ works but use only for _copyable types_
+* _Tag dispatching_ uses an additional parameter type called _tag_ (e.g `std::is_integral`) to aid in matching
+* Templates using `std::enable_if_t` and `std::decay_t` work well for _universal-refs_ and they read nicely
+* _Universal-refs_ offer efficiency advantages although they sometimes suffer from usability disadvantages
 
 ### Item 28: Understand reference collapsing
 
 * Reference collapsing converts `& &&` to `&` (i.e lvalue ref) and `&& &&` to `&&` (i.e rvalue ref)
-* Reference collapsing occurs in `template` and `auto` type deductions, alias declrs and `decltype`
+* Reference collapsing occurs in `template` and `auto` type deductions, alias declarations and `decltype`
 
-### Item 29: Assume that move ops are not present, no cheap, and not used
+### Item 29: Assume that move operations are not present, not cheap, and not used
 
-* Generally, _moving_ objs is usually much cheaper then _copying_ them e.g heap-based STL containers
-* For some types e.g `std::array` and `std::string` (with SSO) _copying_ them can be just as efficient
+* Generally, _moving_ objects is usually much cheaper then _copying_ them e.g _heap-based_ STL containers
+* For some types e.g `std::array` and `std::string` (with SSO), _copying_ them can be just as efficient
 
-### Item 30: Perfect forwarding failure cases
+### Item 30: Be aware of failure cases of perfect forwarding
 
 * _Perf-forwarding_ fails when _template type deduction_ fails or deduces wrong type for the arg passed
-* Careful with braced initializers, 0 or NULL for `nullptr` and declr only integral const static members
-* Similarly, `template` and overloaded fn names; altho you can use `static_cast` to resolve fn overloads
-* Finally, passing bit-field to perf-fwding fns is problematic because refs to bitfields don't exist
+* Fail cases: _braced initializers_ and passing `0` or `NULL` (instead of `nullptr`) for _null pointers_
+* For integral `static const` data members, _perfect-forwarding_ will fail if you're missing their definitions
+* For _overloaded_ or `template` functions, avoid _fail cases_ using `static_cast` to your desired type
+* Don't pass _bitfields_ directly to perfect-forwarding functions; use  `static_cast` to an _lvalue_ first
 
 ## Chapter 6. Lambda Expressions
 
 ### Item 31: Avoid default capture modes
 
-* Avoid default `&` or `=` captures for lambdas cause they can easily lead to dangling refs
-* Fail cases: `&` when they outlive the objects captured, `=` for mem types when they outlive `this` 
-* Compiler captures `static` types by `ref` even though default capture-mode could be _by-value_
+* Avoid default `&` or `=` captures for _lambdas_ because they can easily lead to _dangling references_
+* Fail cases: `&` when they outlive the objects captured, `=` for member types when they outlive `this` 
+* `static` types are always captured _by-reference_ even though default capture mode could be _by-value_
 
-### Item 32: Use init-capture to move objects into (lambda) closures
+### Item 32: Use init-capture (aka generalized lambda captures) to move objects into (lambda) closures
 
-* Often called _generalized lambda captures_ allow you to init objs inside a lambda capture expr
+* _Init-capture_ allows you to initialize types (e.g variables) inside a lambda capture expression
 
-### Item 33: Use `decltype` on `auto&&` params for `std::forward`
+### Item 33: Use `decltype` on `auto&&` parameters for `std::forward`
 
-* Use `auto&&` deduction in lambda's params for using `std::forward` to fwd to other functions
+* Use `decltype` on `auto&&` parameters when using `std::forward` for forwarding them to other functions
+* This case will typically occur when you are implementing _perfect-forwarding_ using _auto type deduction_
 
-### Item 34: Prefer lambdas to `std::bind`
+### Item 34: Prefer _lambdas_ to `std::bind`
 
-* No convincing use-use for `std::bind` after _init capture_ based `lambdas` were introduced
+* Always prefer _init capture_ based `lambdas` (aka generalized lambdas) instead of using `std::bind`
 
 ## Chapter 7. Concurrency API
 
-### Item 35: Prefer task-based programming to thread-based
+### Item 35: Prefer `std::async` (i.e task-based programming) to `std::thread` (i.e thread-based)
 
-* `std::thread` acts as handle to an OS thread so _you_ need to manage scheduling and oversubscription
-* Use `std::async` (aka task) with default launch policy to handle most of the corner cases for you
+* When using `std::thread`s, you almost always need to handle scheduling and oversubscription issues
+* Using `std::async` (aka task) with _default launch policy_ handles most of the corner cases for you
   
 ### Item 36: Specify `std::launch::async` for truly asynchronous tasks
 
-* `std::async`'s default policy can make it run either async (new thread) or sync (i.e upon `.get()`)
-* For `std::future_status::deferred` on `.wait_for()`, you need to always call `.get()`
+* `std::async`'s default launch policy can run either async (in new thread) or sync (upon `.get()` call)
+* If you get `std::future_status::deferred` on `.wait_for()`, call `.get()` to run the given task
 
-### Item 37: Always make `std::threads` unjoinable on all paths
+### Item 37: Always make `std::thread`s unjoinable on all paths
 
-* You need to either call `.join()` or `.detach()` on an `std::thread` before it _destructs_
-* In _dtor_, calling `.join()` leads to performance anomalies while `.detach()` _undefined behavior_
+* Avoid _program termination_ by calling `.join()` or `.detach()` on an `std::thread` before it _destructs_!
+* Calling `.join()` can lead to performance anomalies while `.detach()` leads to _undefined behavior_
 
 ### Item 38: Be aware of varying destructor behavior of thread handle
 
-* `std::future` blocks in _dtor_ if policy is `std::launch::async` by calling an _implicit_ join
-* `std::shared_future` blocks when, additionally, the given shared future is the last copy
-* `std::packaged_task` doesn't need a _dtor_ policy; underlying `std::thread` (running it) does
+* `std::future` blocks in _destructor_ if policy is `std::launch::async` by calling an _implicit_ join
+* `std::shared_future` blocks when, additionally, the given shared future is the last copy in scope
+* `std::packaged_task` doesn't need a _destructor_ policy but the underlying `std::thread` (running it) does
 
-### Item 39: Consider void `std::future`s for one-shot communication (comm.)
+### Item 39: Consider `std::future`s of void type for one-shot communication (comm.)
 
 * For simple comm., `std::condition_variable`, `std::mutex` and `std::lock_guard` is an overkill
 * Use `std::future<void>` and `std::promise` for one-time communication between two threads
 
 ### Item 40: Use `std::atomic` for concurrency and `volatile` for special memory
 
-* `std::atomic` makes R/W thread-safe and prevents the reordering of R/Ws on atomic types
-* `volatile` tells compiler it's _special memory_ and compiler doesn't optimize redundant R/Ws
-* `std::atomic` doesn't support copy or move ops but you can use `.load()` and `.store()` fns.
-* Use `volatile` for _special memory_ and `std::atomic` for managing access to _shared memory_
+* Use `std::atomic` guarantees _thread-safety_ for _shared memory_ while `volatile` specifies _special memory_
+* `std::atomic` prevents reordering of reads/write operations but permits elimination of _redundant reads/writes_
+* `volatile` specifies _special memory_ (e.g for _memory mapped variables_) which permits _redundant reads/writes_
 
 ## Chapter 8. Tweaks
 
-### Item 41: Consider pass-by-value for params which are always copied and cheap to move
+### Item 41: When to use pass-by-value for functions parameters
 
-* Consider _pass-by-value_ for always-copied parameters instead of pass by `l/r/u-refs` in fns.
-* Prefer `r-refs` parameters for move-only types to limit copying to exactly one move operation
-* Do not _pass-by-value_ for base class parameter types cause it will lead to the _slicing problem_
+* Consider _pass-by-value_ for parameters if and only if they are always copied and are cheap to move
+* Prefer `rvalue-ref` parameters for move-only types to limit copying to exactly one move operation
+* Never use _pass-by-value_ for base class parameter types because it leads to the _slicing problem_
 
 ### Item 42: Choose emplacement instead of insertion
 
-* Use `.emplace` versions instead of `.push/.insert` to avoid temp when adding to STL containers
-* When value being added uses assignment, `.push/.insert` work just as well as `.emplace` versions
-* In a cont. of resource-managing types e.g unique_ptr, `.push/.insert` can prevent corner cases
-* Whn using `.emplace` functions, be careful with _args_ cause they can invoke explicit _ctors_
+* Use `.emplace` versions instead of `.push/.insert` to avoid temp copies when adding to STL containers
+* When value being added uses assignment, `.push/.insert` work just as well as the `.emplace` versions
+* For containers of _resource-managing types_ e.g smart pointers, `.push/.insert` can prevent memory leaks
+* Be careful when using `.emplace` functions because the _args_ passed can invoke explicit _constructors_
